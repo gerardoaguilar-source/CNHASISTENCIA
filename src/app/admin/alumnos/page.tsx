@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Alumnos() {
   const perfil = await perfilActual();
-  if (!perfil) redirect("/entrar");
+  if (!perfil) redirect("/salir");
   if (perfil.rol !== "admin") redirect("/");
 
   const [sec, prepa, cSec, cPrepa] = await Promise.all([
