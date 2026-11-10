@@ -89,7 +89,7 @@ export default function FormaJustificacion({ hoyISO }: { hoyISO: string }) {
             <input
               id="buscar" className="control" value={texto} autoComplete="off"
               onChange={(e) => buscar(e.target.value)}
-              placeholder="Escribe apellido, nombre o matrícula…"
+              placeholder="Escribe apellido o nombre…"
             />
             {texto.trim().length >= 2 && (
               <div className="resultado-busqueda">
