@@ -75,16 +75,34 @@ se manda en un día normal.
 
 ### 4. Usuarios
 
-En Supabase → **Authentication → Users → Add user**: correo y contraseña,
-marcando *Auto Confirm User*. Cada persona entra con ese correo.
-
-Para volver administrador a alguien: **Table Editor → perfiles** → cambiar la
-columna `rol` de `coordinador` a `admin`.
+Nadie puede registrarse por su cuenta. Las cuentas las crea un administrador
+desde la app: **Administración → Usuarios del sistema → Dar de alta a alguien**
+(nombre, correo, contraseña y tipo de acceso). Ahí mismo se puede suspender o
+reactivar una cuenta, cambiarle la contraseña y cambiar su tipo de acceso.
 
 | Acceso | Puede |
 |---|---|
-| Coordinador | Pasar lista, notificar, registrar permisos |
-| Administrador | Todo lo anterior + cargar alumnos y ver usuarios |
+| Coordinador (prefecto) | Pasar lista, notificar, registrar permisos |
+| Administrador | Todo lo anterior + cargar alumnos y dar de alta cuentas |
+
+**Límite: 100 cuentas.** Al ocuparse el lugar 100 la app ya no deja crear más
+(las suspendidas también cuentan). Para ampliarlo hay que cambiar el número en
+dos lugares: `LIMITE_CUENTAS` en `src/lib/config.ts` (y volver a publicar) y
+`limite_cuentas()` en `supabase/04_limite_cuentas.sql` (y volver a ejecutarlo).
+
+Preparación, una sola vez:
+
+1. Supabase → **SQL Editor** → pegar y ejecutar `supabase/04_limite_cuentas.sql`.
+2. Supabase → **Authentication → Sign In / Providers** → apagar
+   *Allow new users to sign up*. La app sigue pudiendo crear cuentas.
+3. Vercel → **Environment Variables**: confirmar que está
+   `SUPABASE_SERVICE_ROLE_KEY`. Sin ella la app no puede crear cuentas.
+
+**La primera cuenta** (la de la dirección) se crea en Supabase →
+**Authentication → Users → Add user**, marcando *Auto Confirm User*. Si es la
+primera del sistema queda como administrador automáticamente; si ya había
+otras, hay que ir a **Table Editor → perfiles** y poner `rol = admin` y
+`activo = true`.
 
 ### 5. Cargar los alumnos
 
