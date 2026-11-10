@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Encabezado from "@/components/Encabezado";
+import FormaUsuario from "@/components/FormaUsuario";
+import AccionesUsuario from "@/components/AccionesUsuario";
 import { perfilActual } from "@/lib/datos";
-import { haySupabase } from "@/lib/config";
-import { supabaseServidor } from "@/lib/supabase/servidor";
+import { haySupabase, hayLlaveServicio } from "@/lib/config";
+import { cupoCuentas, listarUsuarios } from "@/lib/usuarios";
 import type { Perfil } from "@/lib/tipos";
 
 export const metadata = { title: "Usuarios" };
@@ -11,16 +13,18 @@ export const dynamic = "force-dynamic";
 
 export default async function Usuarios() {
   const perfil = await perfilActual();
-  if (!perfil) redirect("/entrar");
+  if (!perfil) redirect("/salir");
   if (perfil.rol !== "admin") redirect("/");
 
-  let usuarios: Perfil[] = [];
-  if (haySupabase()) {
-    const sb = await supabaseServidor();
-    const { data } = await sb.from("perfiles").select("*").order("nombre");
-    usuarios = (data ?? []) as Perfil[];
+  const demo = !haySupabase();
+  const sinLlave = !demo && !hayLlaveServicio();
+
+  let usuarios: Perfil[] = [perfil];
+  let cupo = await cupoCuentas();
+  if (!demo && !sinLlave) {
+    usuarios = await listarUsuarios();
   } else {
-    usuarios = [perfil];
+    cupo = { ...cupo, usadas: 1, libres: cupo.limite - 1 };
   }
 
   return (
@@ -37,20 +41,53 @@ export default async function Usuarios() {
 
         <h1 className="titulo">Usuarios del sistema</h1>
         <p className="entrada">
-          Quién puede entrar a pasar lista y quién puede administrar.
+          Quién puede entrar a pasar lista y quién puede administrar. Las
+          cuentas solo se crean aquí; nadie puede registrarse por su cuenta.
         </p>
 
-        <div className="aviso-caja ok">
-          <strong>Dos tipos de acceso.</strong> El <em>coordinador</em> pasa
-          lista y registra permisos. El <em>administrador</em> además carga
-          alumnos y da de alta usuarios.
+        <div className={`aviso-caja ${cupo.lleno ? "alerta" : "ok"}`}>
+          <strong>
+            {cupo.usadas} de {cupo.limite} cuentas ocupadas.
+          </strong>{" "}
+          {cupo.lleno
+            ? "Ya no quedan lugares."
+            : cupo.libres === 1
+              ? "Queda 1 lugar."
+              : `Quedan ${cupo.libres} lugares.`}{" "}
+          Las cuentas suspendidas también ocupan lugar.
         </div>
 
-        <div className="tabla-marco" style={{ marginBottom: 18 }}>
+        {demo && (
+          <div className="aviso-caja alerta">
+            <strong>Modo demostración.</strong> Aquí se ve cómo funciona, pero
+            las cuentas no se guardan hasta conectar Supabase.
+          </div>
+        )}
+        {sinLlave && (
+          <div className="aviso-caja error">
+            <strong>Falta la llave de servicio.</strong> En Vercel → Settings →
+            Environment Variables hay que cargar{" "}
+            <code>SUPABASE_SERVICE_ROLE_KEY</code> y volver a publicar. Sin
+            ella no se pueden crear ni modificar cuentas.
+          </div>
+        )}
+
+        <div className="tarjeta">
+          <h2>Dar de alta a alguien</h2>
+          <p className="sub">
+            El <em>coordinador</em> (prefecto) pasa lista y registra permisos.
+            El <em>administrador</em> además carga alumnos y da de alta cuentas.
+          </p>
+          <FormaUsuario lleno={cupo.lleno} limite={cupo.limite} />
+        </div>
+
+        <div className="tabla-marco">
           <div className="tabla-scroll">
             <table className="tabla">
               <thead>
-                <tr><th>Nombre</th><th>Correo</th><th>Acceso</th><th>Estado</th></tr>
+                <tr>
+                  <th>Nombre</th><th>Correo</th><th>Acceso</th><th>Estado</th><th>Cambios</th>
+                </tr>
               </thead>
               <tbody>
                 {usuarios.map((u) => (
@@ -67,27 +104,18 @@ export default async function Usuarios() {
                         <span style={{ color: "var(--gris-500)" }}>Suspendido</span>
                       )}
                     </td>
+                    <td>
+                      {u.id === perfil.id ? (
+                        <span style={{ fontSize: 12, color: "var(--gris-500)" }}>Tu cuenta</span>
+                      ) : (
+                        <AccionesUsuario id={u.id} nombre={u.nombre} rol={u.rol} activo={u.activo} />
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-
-        <div className="tarjeta">
-          <h2>Dar de alta a alguien</h2>
-          <p className="sub">Se hace desde el panel de Supabase, una sola vez por persona.</p>
-          <ol style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.75, color: "var(--gris-700)" }}>
-            <li>Entrar a <strong>supabase.com</strong> → el proyecto del colegio.</li>
-            <li>Menú <strong>Authentication → Users → Add user</strong>.</li>
-            <li>Poner el correo y una contraseña temporal. Marcar <em>Auto Confirm User</em>.</li>
-            <li>
-              El usuario aparece aquí como <em>Coordinador</em>. Para volverlo
-              administrador: <strong>Table Editor → perfiles</strong>, cambiar la
-              columna <code>rol</code> a <code>admin</code>.
-            </li>
-            <li>Para quitarle el acceso sin borrarlo, poner <code>activo</code> en falso.</li>
-          </ol>
         </div>
       </main>
     </>
