@@ -6,6 +6,23 @@ export const TELEFONO_COLEGIO =
   process.env.NEXT_PUBLIC_TELEFONO_COLEGIO || "";
 export const ZONA_HORARIA = process.env.ZONA_HORARIA || "America/Tijuana";
 
+/**
+ * LÍMITE DE CUENTAS
+ * Cuántas personas pueden tener cuenta para entrar a la app. Al llegar a
+ * este número ya no se puede dar de alta a nadie más desde
+ * Administración → Usuarios. Las cuentas suspendidas también cuentan.
+ *
+ * Para subirlo hay que cambiar el número en DOS lugares:
+ *   1. aquí, y volver a publicar la app;
+ *   2. en supabase/04_limite_cuentas.sql, y volver a ejecutarlo en Supabase.
+ */
+export const LIMITE_CUENTAS = 100;
+
+/** ¿Está la llave de servicio? Hace falta para dar de alta usuarios. */
+export function hayLlaveServicio(): boolean {
+  return Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
 /** La app corre en MODO DEMO mientras no haya credenciales de Supabase. */
 export function haySupabase(): boolean {
   return Boolean(
