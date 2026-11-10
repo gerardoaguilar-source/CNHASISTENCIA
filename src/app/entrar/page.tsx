@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 export default async function Entrar({
   searchParams,
 }: {
-  searchParams: Promise<{ destino?: string }>;
+  searchParams: Promise<{ destino?: string; aviso?: string }>;
 }) {
   if (!haySupabase()) redirect("/");
-  const { destino } = await searchParams;
+  const { destino, aviso } = await searchParams;
 
   return (
     <div className="acceso">
@@ -20,7 +20,14 @@ export default async function Entrar({
         <img className="acceso-escudo" src="/escudo-cnh.png" alt={COLEGIO} />
         <h1>Control de asistencia</h1>
         <p className="colegio">{COLEGIO}</p>
-        <FormaAcceso destino={destino ?? "/"} />
+        {aviso === "suspendida" && (
+          <div className="aviso-caja alerta" role="alert" style={{ textAlign: "left" }}>
+            <strong>Tu cuenta está suspendida.</strong> El correo y la
+            contraseña son correctos, pero la cuenta no tiene acceso.
+            Comunícate con la dirección para que la reactiven.
+          </div>
+        )}
+        <FormaAcceso destino={destino && !destino.startsWith("/salir") ? destino : "/"} />
         <p className="pie-acceso">
           Acceso exclusivo para personal del colegio.
           <br />
