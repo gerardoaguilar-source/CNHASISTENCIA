@@ -15,7 +15,7 @@ export default async function Justificaciones({
   searchParams: Promise<{ ver?: string }>;
 }) {
   const perfil = await perfilActual();
-  if (!perfil) redirect("/entrar");
+  if (!perfil) redirect("/salir");
 
   const { ver } = await searchParams;
   const soloVigentes = ver !== "todos";
