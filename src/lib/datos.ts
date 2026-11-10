@@ -22,7 +22,10 @@ export async function perfilActual(): Promise<Perfil | null> {
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
   const { data } = await sb.from("perfiles").select("*").eq("id", user.id).single();
-  return (data as Perfil) ?? null;
+  const perfil = (data as Perfil) ?? null;
+  // Cuenta suspendida: se trata igual que si no hubiera sesión.
+  if (!perfil || !perfil.activo) return null;
+  return perfil;
 }
 
 /* ==================================================================== */
