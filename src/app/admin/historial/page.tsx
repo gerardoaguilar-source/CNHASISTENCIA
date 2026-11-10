@@ -19,7 +19,7 @@ export default async function Historial({
   searchParams: Promise<{ desde?: string; hasta?: string }>;
 }) {
   const perfil = await perfilActual();
-  if (!perfil) redirect("/entrar");
+  if (!perfil) redirect("/salir");
 
   const { desde: d, hasta: h } = await searchParams;
   const valida = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
