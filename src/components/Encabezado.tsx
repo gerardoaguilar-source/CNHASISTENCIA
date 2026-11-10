@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { COLEGIO } from "@/lib/config";
 import { perfilActual } from "@/lib/datos";
 
 export default async function Encabezado({ admin = true }: { admin?: boolean }) {
   const perfil = await perfilActual();
-  const esAdmin = perfil?.rol === "admin";
+  // Sin perfil activo (cuenta suspendida o borrada): cerrar la sesión.
+  if (!perfil) redirect("/salir");
+  const esAdmin = perfil.rol === "admin";
 
   return (
     <header className="barra">
