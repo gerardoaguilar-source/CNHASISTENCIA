@@ -168,6 +168,20 @@ export default async function Historial({
           ))}
         </div>
 
+        <div className="tarjeta" style={{ marginBottom: 22 }}>
+          <a
+            className="btn btn-principal btn-ancho"
+            href={`/admin/historial/pdf?desde=${desde}&hasta=${hasta}`}
+            download
+          >
+            Descargar PDF (Secundaria y Preparatoria)
+          </a>
+          <p style={{ fontSize: 12.5, color: "var(--gris-500)", margin: "10px 0 0" }}>
+            Un solo archivo con los dos niveles, del {fechaNumerica(desde)} al{" "}
+            {fechaNumerica(hasta)}.
+          </p>
+        </div>
+
         {visibles.map((x) => (
           <SeccionNivel
             key={x.valor}

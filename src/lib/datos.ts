@@ -303,21 +303,43 @@ export async function historialAusencias(desde: string, hasta: string) {
   }
 
   const sb = await supabaseServidor();
-  const { data } = await sb
-    .from("asistencia")
-    .select("fecha, estatus, alumno_id, alumnos(nombre, apellido_paterno, apellido_materno, grupos(nombre, nivel))")
-    .gte("fecha", desde).lte("fecha", hasta)
-    .neq("estatus", "presente")
-    .order("fecha", { ascending: false })
-    .limit(1000);
 
-  const { data: notifs } = await sb
-    .from("notificaciones")
-    .select("alumno_id, fecha, destinatarios, estatus")
-    .gte("fecha", desde).lte("fecha", hasta);
+  // Supabase entrega máximo 1000 renglones por consulta: se pide por partes
+  // para que el historial (y su PDF) salga completo aunque haya más.
+  const PARTE = 1000;
+  const MAX_PARTES = 50;
+
+  const data: unknown[] = [];
+  for (let i = 0; i < MAX_PARTES; i++) {
+    const { data: parte, error } = await sb
+      .from("asistencia")
+      .select("fecha, estatus, alumno_id, alumnos(nombre, apellido_paterno, apellido_materno, grupos(nombre, nivel))")
+      .gte("fecha", desde).lte("fecha", hasta)
+      .neq("estatus", "presente")
+      .order("fecha", { ascending: false })
+      .order("alumno_id")
+      .range(i * PARTE, (i + 1) * PARTE - 1);
+    if (error) throw new Error(error.message);
+    data.push(...(parte ?? []));
+    if (!parte || parte.length < PARTE) break;
+  }
+
+  const notifs: unknown[] = [];
+  for (let i = 0; i < MAX_PARTES; i++) {
+    const { data: parte, error } = await sb
+      .from("notificaciones")
+      .select("alumno_id, fecha, destinatarios, estatus")
+      .gte("fecha", desde).lte("fecha", hasta)
+      .order("fecha", { ascending: false })
+      .order("id")
+      .range(i * PARTE, (i + 1) * PARTE - 1);
+    if (error) throw new Error(error.message);
+    notifs.push(...(parte ?? []));
+    if (!parte || parte.length < PARTE) break;
+  }
 
   const avisados = new Map<string, string[]>();
-  for (const n of (notifs ?? []) as { alumno_id: string; fecha: string; destinatarios: string[]; estatus: string }[]) {
+  for (const n of notifs as { alumno_id: string; fecha: string; destinatarios: string[]; estatus: string }[]) {
     if (n.estatus === "enviado") avisados.set(`${n.alumno_id}|${n.fecha}`, n.destinatarios);
   }
 
@@ -328,7 +350,7 @@ export async function historialAusencias(desde: string, hasta: string) {
       grupos: { nombre: string; nivel: Nivel } | null;
     } | null;
   };
-  return ((data ?? []) as unknown as Fila[]).map((r) => ({
+  return (data as Fila[]).map((r) => ({
     fecha: r.fecha,
     alumno: [r.alumnos?.apellido_paterno, r.alumnos?.apellido_materno, r.alumnos?.nombre]
       .filter(Boolean).join(" ").trim(),
