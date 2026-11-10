@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Admin() {
   const perfil = await perfilActual();
-  if (!perfil) redirect("/entrar");
+  if (!perfil) redirect("/salir");
   if (perfil.rol !== "admin") redirect("/");
 
   const vigentes = await listarJustificaciones(true, hoy());
