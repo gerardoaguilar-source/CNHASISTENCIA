@@ -283,7 +283,7 @@ export async function historialAusencias(desde: string, hasta: string) {
   if (!haySupabase()) {
     const st = estadoDemo();
     const filas: {
-      fecha: string; alumno: string; grupo: string;
+      fecha: string; alumno: string; grupo: string; nivel: Nivel | null;
       estatus: string; notificado: boolean; correos: string[];
     }[] = [];
     st.asistencia.forEach((v, k) => {
@@ -295,6 +295,7 @@ export async function historialAusencias(desde: string, hasta: string) {
       filas.push({
         fecha, alumno: a.nombre_completo,
         grupo: GRUPOS_DEMO.find((g) => g.id === a.grupo_id)?.nombre ?? "",
+        nivel: GRUPOS_DEMO.find((g) => g.id === a.grupo_id)?.nivel ?? null,
         estatus: v.estatus, notificado: v.notificado, correos: a.correos,
       });
     });
@@ -304,11 +305,11 @@ export async function historialAusencias(desde: string, hasta: string) {
   const sb = await supabaseServidor();
   const { data } = await sb
     .from("asistencia")
-    .select("fecha, estatus, alumnos(nombre, apellido_paterno, apellido_materno, grupos(nombre))")
+    .select("fecha, estatus, alumno_id, alumnos(nombre, apellido_paterno, apellido_materno, grupos(nombre, nivel))")
     .gte("fecha", desde).lte("fecha", hasta)
     .neq("estatus", "presente")
     .order("fecha", { ascending: false })
-    .limit(500);
+    .limit(1000);
 
   const { data: notifs } = await sb
     .from("notificaciones")
@@ -324,7 +325,7 @@ export async function historialAusencias(desde: string, hasta: string) {
     fecha: string; estatus: string; alumno_id?: string;
     alumnos: {
       nombre: string; apellido_paterno: string; apellido_materno: string;
-      grupos: { nombre: string } | null;
+      grupos: { nombre: string; nivel: Nivel } | null;
     } | null;
   };
   return ((data ?? []) as unknown as Fila[]).map((r) => ({
@@ -332,6 +333,7 @@ export async function historialAusencias(desde: string, hasta: string) {
     alumno: [r.alumnos?.apellido_paterno, r.alumnos?.apellido_materno, r.alumnos?.nombre]
       .filter(Boolean).join(" ").trim(),
     grupo: r.alumnos?.grupos?.nombre ?? "",
+    nivel: r.alumnos?.grupos?.nivel ?? null,
     estatus: r.estatus,
     notificado: avisados.has(`${r.alumno_id}|${r.fecha}`),
     correos: avisados.get(`${r.alumno_id}|${r.fecha}`) ?? [],
