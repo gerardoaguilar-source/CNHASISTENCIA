@@ -31,7 +31,7 @@ export function textoAviso(d: DatosAviso): string {
     TELEFONO_COLEGIO ? `Teléfono: ${TELEFONO_COLEGIO}` : ``,
     ``,
     `Agradecemos su atención.`,
-    `Dirección — ${etiquetaNivel(d.nivel)}`,
+    `Prefectura — 664-689-1091`,
     `${COLEGIO}`,
     ``,
     `— Este correo se generó automáticamente al pasar lista. Favor de no responder a esta dirección si no es necesario.`,
@@ -86,7 +86,7 @@ export function htmlAviso(d: DatosAviso): string {
 
       <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#13201A;">Agradecemos su atención.</p>
       <p style="margin:0 0 26px;font-size:15px;line-height:1.6;color:#13201A;">
-        <strong>Dirección — ${esc(etiquetaNivel(d.nivel))}</strong><br>
+        <strong>Prefectura — 664-689-1091</strong><br>
         <span style="color:#46554C;">${esc(COLEGIO)}</span>
       </p>
     </td></tr>
