@@ -32,7 +32,6 @@ export function textoAviso(d: DatosAviso): string {
     ``,
     `Agradecemos su atención.`,
     `Prefectura — 664-689-1091`,
-    `${COLEGIO}`,
     ``,
     `— Este correo se generó automáticamente al pasar lista. Favor de no responder a esta dirección si no es necesario.`,
   ]
@@ -86,8 +85,7 @@ export function htmlAviso(d: DatosAviso): string {
 
       <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#13201A;">Agradecemos su atención.</p>
       <p style="margin:0 0 26px;font-size:15px;line-height:1.6;color:#13201A;">
-        <strong>Prefectura — 664-689-1091</strong><br>
-        <span style="color:#46554C;">${esc(COLEGIO)}</span>
+        <strong>Prefectura — 664-689-1091</strong>
       </p>
     </td></tr>
 
