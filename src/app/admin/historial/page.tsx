@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import DescargarPdf from "@/components/DescargarPdf";
 import Encabezado from "@/components/Encabezado";
 import { historialAusencias, perfilActual } from "@/lib/datos";
 import { fechaNumerica, hoy, sumarDias } from "@/lib/fechas";
@@ -169,13 +170,12 @@ export default async function Historial({
         </div>
 
         <div className="tarjeta" style={{ marginBottom: 22 }}>
-          <a
-            className="btn btn-principal btn-ancho"
+          <DescargarPdf
             href={`/admin/historial/pdf?desde=${desde}&hasta=${hasta}`}
-            download
+            nombre={`Historial de faltas CNH ${desde} a ${hasta}.pdf`}
           >
             Descargar PDF (Secundaria y Preparatoria)
-          </a>
+          </DescargarPdf>
           <p style={{ fontSize: 12.5, color: "var(--gris-500)", margin: "10px 0 0" }}>
             Un solo archivo con los dos niveles, del {fechaNumerica(desde)} al{" "}
             {fechaNumerica(hasta)}.
