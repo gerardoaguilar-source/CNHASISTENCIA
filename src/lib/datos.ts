@@ -71,6 +71,42 @@ export async function conteoPorGrupo(nivel: Nivel): Promise<Record<string, numbe
   return conteo;
 }
 
+/**
+ * Cuántos alumnos están marcados como ausentes en cada grupo en una fecha
+ * (lo ya guardado, se haya avisado o no a los padres). Sirve para que en el
+ * selector de grupos se vea de un vistazo cuántos lleva cada salón.
+ */
+export async function marcadosPorGrupo(
+  nivel: Nivel, fecha: string
+): Promise<Record<string, number>> {
+  const conteo: Record<string, number> = {};
+  if (!haySupabase()) {
+    estadoDemo().asistencia.forEach((v, k) => {
+      const [alumnoId, f] = k.split("|");
+      if (f !== fecha || v.estatus !== "ausente") return;
+      const a = ALUMNOS_DEMO.find((x) => x.id === alumnoId);
+      const g = a && GRUPOS_DEMO.find((x) => x.id === a.grupo_id);
+      if (!a || !g || g.nivel !== nivel) return;
+      conteo[a.grupo_id] = (conteo[a.grupo_id] ?? 0) + 1;
+    });
+    return conteo;
+  }
+  const sb = await supabaseServidor();
+  const grupos = await obtenerGrupos(nivel);
+  if (!grupos.length) return conteo;
+  const { data, error } = await sb
+    .from("asistencia")
+    .select("grupo_id")
+    .eq("fecha", fecha)
+    .eq("estatus", "ausente")
+    .in("grupo_id", grupos.map((g) => g.id));
+  if (error) throw new Error(error.message);
+  for (const r of (data ?? []) as { grupo_id: string }[]) {
+    conteo[r.grupo_id] = (conteo[r.grupo_id] ?? 0) + 1;
+  }
+  return conteo;
+}
+
 /* ==================================================================== */
 /*  LISTA DEL GRUPO EN UNA FECHA                                        */
 /* ==================================================================== */
@@ -237,6 +273,50 @@ export async function cancelarJustificacion(id: string): Promise<void> {
   const sb = await supabaseServidor();
   const { error } = await sb.from("justificaciones").update({ cancelada: true }).eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+/**
+ * Permisos (justificaciones) no cancelados que tocan algún día del periodo.
+ * Se usa en el PDF del historial, para la sección de justificados.
+ */
+export async function justificadosEnPeriodo(
+  desde: string, hasta: string
+): Promise<JustificacionConAlumno[]> {
+  if (!haySupabase()) {
+    const todas = await listarJustificaciones(false, hasta);
+    return todas.filter((j) => j.fecha_inicio <= hasta && j.fecha_fin >= desde);
+  }
+
+  const sb = await supabaseServidor();
+  const PARTE = 1000;
+  const data: unknown[] = [];
+  for (let i = 0; i < 50; i++) {
+    const { data: parte, error } = await sb
+      .from("justificaciones")
+      .select("*, alumnos(nombre, apellido_paterno, apellido_materno, grupos(nombre, nivel))")
+      .eq("cancelada", false)
+      .lte("fecha_inicio", hasta).gte("fecha_fin", desde)
+      .order("fecha_inicio")
+      .order("id")
+      .range(i * PARTE, (i + 1) * PARTE - 1);
+    if (error) throw new Error(error.message);
+    data.push(...(parte ?? []));
+    if (!parte || parte.length < PARTE) break;
+  }
+
+  type Fila = Justificacion & {
+    alumnos: {
+      nombre: string; apellido_paterno: string; apellido_materno: string;
+      grupos: { nombre: string; nivel: Nivel } | null;
+    } | null;
+  };
+  return (data as Fila[]).map((j) => ({
+    ...j,
+    alumno_nombre: [j.alumnos?.apellido_paterno, j.alumnos?.apellido_materno, j.alumnos?.nombre]
+      .filter(Boolean).join(" ").replace(/\s+/g, " ").trim(),
+    grupo_nombre: j.alumnos?.grupos?.nombre ?? "—",
+    nivel: j.alumnos?.grupos?.nivel ?? "secundaria",
+  }));
 }
 
 /** Búsqueda de alumnos por nombre o matrícula — para el alta de permisos. */
