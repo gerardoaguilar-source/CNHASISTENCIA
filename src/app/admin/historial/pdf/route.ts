@@ -1,4 +1,4 @@
-import { historialAusencias, perfilActual } from "@/lib/datos";
+import { historialAusencias, justificadosEnPeriodo, perfilActual } from "@/lib/datos";
 import { hoy, sumarDias } from "@/lib/fechas";
 import { pdfHistorial } from "@/lib/pdf/historial";
 
@@ -18,7 +18,18 @@ export async function GET(req: Request) {
   const hasta = valida(url.searchParams.get("hasta")) ?? hoy();
   const desde = valida(url.searchParams.get("desde")) ?? sumarDias(hasta, -29);
 
-  const filas = await historialAusencias(desde, hasta);
+  const [filas, permisos] = await Promise.all([
+    historialAusencias(desde, hasta),
+    justificadosEnPeriodo(desde, hasta),
+  ]);
+  const justificados = permisos.map((j) => ({
+    alumno: j.alumno_nombre,
+    grupo: j.grupo_nombre,
+    nivel: j.nivel,
+    fecha_inicio: j.fecha_inicio,
+    fecha_fin: j.fecha_fin,
+    motivo: j.motivo,
+  }));
 
   // El escudo es un archivo público de la app; si no se puede leer, el PDF
   // sale igual, sin escudo.
@@ -30,7 +41,7 @@ export async function GET(req: Request) {
     escudo = null;
   }
 
-  const pdf = await pdfHistorial({ filas, desde, hasta, generado: hoy(), escudo });
+  const pdf = await pdfHistorial({ filas, justificados, desde, hasta, generado: hoy(), escudo });
 
   return new Response(Buffer.from(pdf), {
     headers: {
