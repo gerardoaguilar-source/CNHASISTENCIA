@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Encabezado from "@/components/Encabezado";
-import { obtenerGrupos, conteoPorGrupo } from "@/lib/datos";
+import { obtenerGrupos, conteoPorGrupo, marcadosPorGrupo } from "@/lib/datos";
 import { etiquetaNivel, type Nivel } from "@/lib/tipos";
 import { fechaLarga, hoy } from "@/lib/fechas";
 
@@ -16,7 +16,9 @@ export default async function Grupos({
   if (nivel !== "secundaria" && nivel !== "preparatoria") notFound();
   const n = nivel as Nivel;
 
-  const [grupos, conteo] = await Promise.all([obtenerGrupos(n), conteoPorGrupo(n)]);
+  const [grupos, conteo, marcados] = await Promise.all([
+    obtenerGrupos(n), conteoPorGrupo(n), marcadosPorGrupo(n, hoy()),
+  ]);
 
   return (
     <>
@@ -56,6 +58,14 @@ export default async function Grupos({
                   {conteo[g.id] ?? 0}{" "}
                   {(conteo[g.id] ?? 0) === 1 ? "alumno" : "alumnos"}
                 </div>
+                {(marcados[g.id] ?? 0) > 0 && (
+                  <div className="grupo-marcados">
+                    <span className="chip rojo">
+                      <i className="punto" />
+                      {marcados[g.id]} {marcados[g.id] === 1 ? "ausente" : "ausentes"}
+                    </span>
+                  </div>
+                )}
               </Link>
             ))}
           </div>
