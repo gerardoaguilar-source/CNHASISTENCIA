@@ -15,6 +15,16 @@ export interface FilaHistorial {
   notificado: boolean;
 }
 
+/** Un permiso vigente en el periodo, para la sección de justificados. */
+export interface FilaJustificado {
+  alumno: string;
+  grupo: string;
+  nivel: Nivel;
+  fecha_inicio: string;
+  fecha_fin: string;
+  motivo: string;
+}
+
 const ETIQUETA: Record<string, string> = {
   ausente: "Falta",
   justificado: "Con permiso",
@@ -34,6 +44,12 @@ const COLUMNAS = [
   { titulo: "Grupo", ancho: 86 },
   { titulo: "Estatus", ancho: 72 },
   { titulo: "Aviso a padres", ancho: 80 },
+];
+const COLUMNAS_JUSTIF = [
+  { titulo: "Alumno", ancho: 172 },
+  { titulo: "Grupo", ancho: 78 },
+  { titulo: "Permiso", ancho: 118 },
+  { titulo: "Motivo", ancho: 160 },
 ];
 const ALTO_RENGLON = 17;
 
@@ -69,6 +85,7 @@ function resumen(filas: FilaHistorial[]): string {
  */
 export async function pdfHistorial(d: {
   filas: FilaHistorial[];
+  justificados?: FilaJustificado[];
   desde: string;
   hasta: string;
   generado: string; // fecha de hoy, YYYY-MM-DD
@@ -100,6 +117,23 @@ export async function pdfHistorial(d: {
     return t.trimEnd() + "…";
   };
 
+  /** Parte el texto en renglones que quepan en el ancho (máximo `tope`). */
+  const partir = (s: string, fuente: PDFFont, tam: number, ancho: number, tope = 4) => {
+    const lineas: string[] = [];
+    let actual = "";
+    for (const palabra of limpiar(s).split(" ")) {
+      const prueba = actual ? `${actual} ${palabra}` : palabra;
+      if (!actual || fuente.widthOfTextAtSize(prueba, tam) <= ancho) actual = prueba;
+      else { lineas.push(actual); actual = palabra; }
+    }
+    if (actual) lineas.push(actual);
+    if (lineas.length > tope) {
+      lineas.length = tope;
+      lineas[tope - 1] += "…";
+    }
+    return lineas.map((l) => ajustar(l, fuente, tam, ancho));
+  };
+
   let pagina: PDFPage = doc.addPage([ANCHO, ALTO]);
   let y = ALTO - MARGEN;
 
@@ -113,10 +147,10 @@ export async function pdfHistorial(d: {
     y = ALTO - MARGEN;
   };
 
-  const encabezadoTabla = () => {
+  const encabezadoTabla = (columnas = COLUMNAS) => {
     pagina.drawRectangle({ x: MARGEN, y: y - 18, width: UTIL, height: 18, color: FONDO });
     let x = MARGEN + 6;
-    for (const c of COLUMNAS) {
+    for (const c of columnas) {
       texto(c.titulo, x, y - 12.5, 8.5, negrita, GRIS);
       x += c.ancho;
     }
@@ -201,6 +235,62 @@ export async function pdfHistorial(d: {
       });
     }
     y -= 28;
+  }
+
+  /* ---------- Justificados (al final) ---------- */
+  {
+    const ordenNivel = (n: Nivel) => NIVELES.findIndex((x) => x.valor === n);
+    const justif = [...(d.justificados ?? [])].sort((a, b) =>
+      ordenNivel(a.nivel) - ordenNivel(b.nivel) ||
+      a.grupo.localeCompare(b.grupo, "es", { numeric: true }) ||
+      a.alumno.localeCompare(b.alumno, "es") ||
+      a.fecha_inicio.localeCompare(b.fecha_inicio)
+    );
+    const unDia = d.desde === d.hasta;
+    const titulo = unDia
+      ? `Justificados del día ${fechaNumerica(d.desde)}`
+      : "Justificados del periodo";
+
+    if (y - (16 + 16 + 18 + ALTO_RENGLON * 2) < PISO) nuevaPagina();
+
+    texto(titulo, MARGEN, y - 4, 13, negrita, VERDE);
+    y -= 20;
+    texto(
+      justif.length === 0
+        ? "Ningún alumno con permiso."
+        : `${plural(justif.length, "permiso", "permisos")}   ·   Secundaria y Preparatoria`,
+      MARGEN, y, 9.5, normal, GRIS
+    );
+    y -= 12;
+
+    if (justif.length > 0) {
+      encabezadoTabla(COLUMNAS_JUSTIF);
+      for (const j of justif) {
+        const motivo = partir(j.motivo || "—", normal, 9.5, COLUMNAS_JUSTIF[3].ancho - 8);
+        const altoFila = ALTO_RENGLON + (motivo.length - 1) * 11;
+        if (y - altoFila < PISO) {
+          nuevaPagina();
+          texto("Justificados (continuación)", MARGEN, y - 4, 10, negrita, VERDE);
+          y -= 14;
+          encabezadoTabla(COLUMNAS_JUSTIF);
+        }
+        const vigencia = j.fecha_inicio === j.fecha_fin
+          ? fechaNumerica(j.fecha_inicio)
+          : `${fechaNumerica(j.fecha_inicio)} al ${fechaNumerica(j.fecha_fin)}`;
+        const celdas = [j.alumno, j.grupo, vigencia];
+        let x = MARGEN + 6;
+        celdas.forEach((c, i) => {
+          const col = COLUMNAS_JUSTIF[i];
+          texto(ajustar(c, normal, 9.5, col.ancho - 8), x, y - 12, 9.5);
+          x += col.ancho;
+        });
+        motivo.forEach((l, i) => texto(l, x, y - 12 - i * 11, 9.5));
+        y -= altoFila;
+        pagina.drawLine({
+          start: { x: MARGEN, y }, end: { x: ANCHO - MARGEN, y }, thickness: 0.5, color: LINEA,
+        });
+      }
+    }
   }
 
   /* ---------- Pie con número de página ---------- */
