@@ -102,7 +102,7 @@ export default function AltasBajasAlumnos({ grupos }: { grupos: GrupoOpcion[] })
 
   return (
     <div className="tarjeta">
-      <h2>Altas y bajas a mano</h2>
+      <h2>Altas y bajas manual</h2>
       <p className="sub">
         Para cuando entra o se va un alumno a mitad del ciclo, sin tener que
         volver a subir el Excel. Elige el grupo y ahí mismo agregas o das de baja.
