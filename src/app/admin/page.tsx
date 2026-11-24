@@ -52,7 +52,7 @@ export default async function Admin() {
             <div className="t">👥 Alumnos y correos</div>
             <div className="d">
               Cargar la lista desde Excel: nombre, grupo y correo de los papás.
-              También sirve para actualizar correos a mitad del ciclo.
+              También se puede agregar o dar de baja a un alumno a mano.
             </div>
           </Link>
 
