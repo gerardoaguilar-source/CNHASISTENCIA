@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Encabezado from "@/components/Encabezado";
 import ImportarAlumnos from "@/components/ImportarAlumnos";
+import AltasBajasAlumnos from "@/components/AltasBajasAlumnos";
 import { conteoPorGrupo, obtenerGrupos, perfilActual } from "@/lib/datos";
 
 export const metadata = { title: "Alumnos" };
@@ -40,9 +41,13 @@ export default async function Alumnos() {
 
         <ImportarAlumnos />
 
+        <AltasBajasAlumnos
+          grupos={[...sec, ...prepa].map((g) => ({ id: g.id, nivel: g.nivel, nombre: g.nombre }))}
+        />
+
         <div className="tarjeta">
           <h2>Alumnos por grupo</h2>
-          <p className="sub">Así quedó la distribución después de la última carga.</p>
+          <p className="sub">Cuántos alumnos activos tiene cada grupo en este momento.</p>
           <div className="tabla-marco">
             <div className="tabla-scroll">
               <table className="tabla">
